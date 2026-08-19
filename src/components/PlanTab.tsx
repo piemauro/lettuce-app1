@@ -5,8 +5,17 @@ import { avaliarElegibilidade } from "../engine/eligibility";
 import { precoReferencia } from "../engine/market";
 import { calendarios, cenarioSimulado, custosReferencia, fonte } from "../engine/seeds";
 import type { Candidato, Canal, Cultura, EntradaPlano, Irrigacao, ItemCusto, Modo } from "../engine/types";
+import { IcoDrip, IcoLeafSmall, IcoLock, IcoSprinkler, IcoSprout, IcoSun } from "../ui";
 
 const HOJE = "2026-08-19";
+
+function addDiasIso(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+const AREAS_COMUNS = [500, 1000, 2000, 5000];
 
 const PRODUTIVIDADE_KG_HA: Record<Cultura, [number, number, number]> = {
   alface: [18000, 24000, 30000],
@@ -36,6 +45,8 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
   const [canal, setCanal] = useState<Canal>("cooperativa");
   const [gerado, setGerado] = useState(false);
   const [selecionada, setSelecionada] = useState<Cultura | null>(null);
+  const [areaCustom, setAreaCustom] = useState(false);
+  const [dataCustom, setDataCustom] = useState(false);
 
   const [custos, setCustos] = useState<ItemCusto[]>([]);
   const [sim, setSim] = useState({ ...cenarioSimulado });
@@ -104,71 +115,150 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
         <h2>Comece pelo talhão</h2>
         <p className="card-sub">Entrada curta, pensada para o celular. Solo, água e cultivar entram como pendências, sem travar o primeiro resultado.</p>
 
-        <div className="mode-toggle" role="group" aria-label="Modo de entrada">
-          <button aria-pressed={modo === "explorar"} onClick={() => setModo("explorar")}>Explorar o talhão</button>
-          <button aria-pressed={modo === "avaliar"} onClick={() => setModo("avaliar")}>Avaliar uma cultura</button>
+        <div className="q">
+          <span className="q-label">Como você quer começar?</span>
+          <div className="opt-cards" role="group" aria-label="Modo de entrada">
+            <button className="opt-card" aria-pressed={modo === "explorar"} onClick={() => setModo("explorar")}>
+              <IcoSprout />
+              <strong>Explorar o talhão</strong>
+              <span>O sistema sugere culturas para a sua terra</span>
+            </button>
+            <button className="opt-card" aria-pressed={modo === "avaliar"} onClick={() => setModo("avaliar")}>
+              <IcoLeafSmall />
+              <strong>Avaliar uma cultura</strong>
+              <span>Você escolhe e o sistema mostra o plano</span>
+            </button>
+          </div>
         </div>
 
         {modo === "avaliar" && (
-          <div className="field">
-            <label htmlFor="cultura">Cultura</label>
-            <select id="cultura" value={cultura} onChange={(e) => setCultura(e.target.value as Cultura)}>
-              <option value="alface">Alface</option>
-              <option value="repolho">Repolho</option>
-              <option value="couve">Couve</option>
-            </select>
+          <div className="q">
+            <span className="q-label">Qual cultura?</span>
+            <div className="chip-grid" role="group" aria-label="Cultura">
+              {(["alface", "repolho", "couve"] as Cultura[]).map((c) => (
+                <button key={c} className="chip-opt" aria-pressed={cultura === c} onClick={() => setCultura(c)}>
+                  {c === "alface" ? "Alface" : c === "repolho" ? "Repolho" : "Couve"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        <div className="field">
-          <label>Localidade</label>
-          <div className="field-static">Jundiapeba, Mogi das Cruzes — SP (recorte fixo da demo)</div>
+        <div className="q">
+          <span className="q-label">Onde fica a terra?</span>
+          <div className="locked-pill">
+            <IcoLock />
+            <span>
+              Jundiapeba, Mogi das Cruzes — SP
+              <small>recorte fixo desta demonstração</small>
+            </span>
+          </div>
         </div>
 
-        <div className="field">
-          <label htmlFor="area">Área cultivada</label>
-          <div className="row-2">
-            <input id="area" type="number" min={1} value={areaValor} onChange={(e) => setAreaValor(Number(e.target.value))} />
-            <select aria-label="Unidade da área" value={areaUnidade} onChange={(e) => setAreaUnidade(e.target.value as "m2" | "ha")}>
-              <option value="m2">m²</option>
-              <option value="ha">ha</option>
-            </select>
-          </div>
-          <p className="field-note">
+        <div className="q">
+          <span className="q-label">Quanto de terra você vai plantar?</span>
+          <p className="q-help">
             Equivale a {areaUnidade === "m2" ? `${(areaValor / 10000).toLocaleString("pt-BR")} ha` : `${(areaValor * 10000).toLocaleString("pt-BR")} m²`}.
           </p>
-        </div>
-
-        <div className="field">
-          <label htmlFor="data">Data pretendida de plantio</label>
-          <input id="data" type="date" value={dataPlantio} onChange={(e) => setDataPlantio(e.target.value)} />
-          <p className="field-note">Na demo, “hoje” é 19/08/2026, a data dos snapshots.</p>
-        </div>
-
-        <div className="row-2">
-          <div className="field">
-            <label htmlFor="irrigacao">Irrigação</label>
-            <select id="irrigacao" value={irrigacao} onChange={(e) => setIrrigacao(e.target.value as Irrigacao)}>
-              <option value="aspersao">Aspersão</option>
-              <option value="gotejamento">Gotejamento</option>
-              <option value="sem">Sem irrigação</option>
-            </select>
+          <div className="chip-grid" role="group" aria-label="Área cultivada">
+            {AREAS_COMUNS.map((v) => (
+              <button
+                key={v}
+                className="chip-opt"
+                aria-pressed={!areaCustom && areaUnidade === "m2" && areaValor === v}
+                onClick={() => { setAreaCustom(false); setAreaUnidade("m2"); setAreaValor(v); }}
+              >
+                {v.toLocaleString("pt-BR")} m²
+                {v === 5000 && <small>meio hectare</small>}
+              </button>
+            ))}
+            <button className="chip-opt" aria-pressed={areaCustom} onClick={() => setAreaCustom(true)}>
+              Outra medida
+            </button>
           </div>
-          <div className="field">
-            <label htmlFor="canal">Canal provável de venda</label>
-            <select id="canal" value={canal} onChange={(e) => setCanal(e.target.value as Canal)}>
-              <option value="cooperativa">Cooperativa</option>
-              <option value="venda_direta">Venda direta / feira</option>
-              <option value="atravessador">Atravessador</option>
-              <option value="atacado">Atacado</option>
-            </select>
+          {areaCustom && (
+            <div className="custom-reveal">
+              <input aria-label="Área cultivada" type="number" min={1} value={areaValor} onChange={(e) => setAreaValor(Number(e.target.value))} />
+              <select aria-label="Unidade da área" value={areaUnidade} onChange={(e) => setAreaUnidade(e.target.value as "m2" | "ha")}>
+                <option value="m2">m²</option>
+                <option value="ha">ha</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="q">
+          <span className="q-label">Quando pretende plantar?</span>
+          <p className="q-help">Na demo, “hoje” é 19/08/2026, a data dos snapshots.</p>
+          <div className="chip-grid" role="group" aria-label="Data de plantio">
+            {[
+              { rotulo: "Hoje", iso: HOJE },
+              { rotulo: "Em 15 dias", iso: addDiasIso(HOJE, 15) },
+              { rotulo: "Em 30 dias", iso: addDiasIso(HOJE, 30) },
+            ].map((op) => (
+              <button
+                key={op.iso}
+                className="chip-opt"
+                aria-pressed={!dataCustom && dataPlantio === op.iso}
+                onClick={() => { setDataCustom(false); setDataPlantio(op.iso); }}
+              >
+                {op.rotulo}
+              </button>
+            ))}
+            <button className="chip-opt" aria-pressed={dataCustom} onClick={() => setDataCustom(true)}>
+              Escolher data
+            </button>
+          </div>
+          {dataCustom && (
+            <div className="custom-reveal">
+              <input aria-label="Data pretendida de plantio" type="date" value={dataPlantio} onChange={(e) => setDataPlantio(e.target.value)} />
+            </div>
+          )}
+        </div>
+
+        <div className="q">
+          <span className="q-label">Como a terra recebe água?</span>
+          <div className="opt-cards" role="group" aria-label="Irrigação">
+            <button className="opt-card" aria-pressed={irrigacao === "aspersao"} onClick={() => setIrrigacao("aspersao")}>
+              <IcoSprinkler />
+              <strong>Aspersão</strong>
+              <span>água jogada sobre as plantas</span>
+            </button>
+            <button className="opt-card" aria-pressed={irrigacao === "gotejamento"} onClick={() => setIrrigacao("gotejamento")}>
+              <IcoDrip />
+              <strong>Gotejamento</strong>
+              <span>água pinga direto na raiz</span>
+            </button>
+            <button className="opt-card" aria-pressed={irrigacao === "sem"} onClick={() => setIrrigacao("sem")}>
+              <IcoSun />
+              <strong>Sem irrigação</strong>
+              <span>só a chuva</span>
+            </button>
           </div>
         </div>
 
-        <button className="button-lime" onClick={() => { setGerado(true); setSelecionada(null); }}>
+        <div className="q">
+          <span className="q-label">Para quem você costuma vender?</span>
+          <div className="chip-grid" role="group" aria-label="Canal provável de venda">
+            {(
+              [
+                ["cooperativa", "Cooperativa"],
+                ["venda_direta", "Feira / venda direta"],
+                ["atravessador", "Atravessador"],
+                ["atacado", "Atacado"],
+              ] as [Canal, string][]
+            ).map(([valor, rotulo]) => (
+              <button key={valor} className="chip-opt" aria-pressed={canal === valor} onClick={() => setCanal(valor)}>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button className="hero-cta" onClick={() => { setGerado(true); setSelecionada(null); }}>
           Gerar plano preliminar
         </button>
-        <p className="field-note">O cálculo é determinístico: a mesma entrada sempre produz os mesmos números.</p>
+        <p className="form-note">O cálculo é determinístico: a mesma entrada sempre produz os mesmos números.</p>
       </section>
 
       <section aria-label="Plano econômico de cultivo">
@@ -192,28 +282,29 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
               {resultado.pendenciasGerais.map((p) => (
                 <div key={p} className="notice notice-warn">{p}</div>
               ))}
-              {resultado.candidatos.map((c, idx) => (
-                <button
-                  key={c.cultura}
-                  className="candidate"
-                  aria-pressed={selecionada === c.cultura}
-                  disabled={c.status === "nao_elegivel"}
-                  onClick={() => setSelecionada(c.cultura)}
-                >
-                  <span className="candidate-top">
-                    <strong>{c.nome}</strong>
-                    {statusBadge(c)}
-                    {resultado.destaque === c.cultura && idx === 0 && <span className="badge badge-first">colheita mais cedo</span>}
-                    {c.colheitaInicioDias !== null && (
-                      <span className="field-note">colheita em {c.colheitaInicioDias} a {c.colheitaFimDias} dias</span>
-                    )}
-                  </span>
-                  <ul>
-                    {c.motivos.map((m) => <li key={m}>{m}</li>)}
-                    {c.pendencias.map((p) => <li key={p}>Pendência: {p}</li>)}
-                  </ul>
-                </button>
-              ))}
+              <div className="cand-list">
+                {resultado.candidatos.map((c, idx) => (
+                  <button
+                    key={c.cultura}
+                    className="cand"
+                    aria-pressed={selecionada === c.cultura}
+                    disabled={c.status === "nao_elegivel"}
+                    onClick={() => setSelecionada(c.cultura)}
+                  >
+                    <span className="cand-top">
+                      <strong>{c.nome}</strong>
+                      {statusBadge(c)}
+                      {resultado.destaque === c.cultura && idx === 0 && <span className="badge badge-first">colheita mais cedo</span>}
+                      {c.colheitaInicioDias !== null && (
+                        <span className="cand-days">colheita em {c.colheitaInicioDias} a {c.colheitaFimDias} dias</span>
+                      )}
+                    </span>
+                    <p className="cand-why">
+                      {[...c.motivos, ...c.pendencias.map((p) => `Pendência: ${p}`)].join(" · ")}
+                    </p>
+                  </button>
+                ))}
+              </div>
               <p className="source-line">{resultado.avisoDestaque} Fontes: {fonte("embrapa-c47").titulo} · {fonte("fgv-cinturao").emissor}, consultadas em 19/08/2026.</p>
             </div>
 
@@ -298,22 +389,6 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
                   <div className="notice notice-warn">
                     Sem análise de solo, adubação e corretivo aparecem como categoria de custo. O sistema não calcula dose; isso fica com o responsável técnico.
                   </div>
-                </div>
-
-                <div className="card">
-                  <p className="eyebrow">Preço de referência · {selecionadaCand.nome}</p>
-                  <h2>{mercado?.status === "ok" ? "Mediana atacadista dos últimos 14 dias" : "Dados insuficientes para preço atual"}</h2>
-                  <p className="card-sub">{mercado?.aviso}</p>
-                  {mercado && mercado.descartes.length > 0 && (
-                    <div className="notice">
-                      Observações descartadas com motivo: {mercado.descartes.map((d) => `${d.id} (${d.motivo})`).join("; ")}.
-                    </div>
-                  )}
-                  {selecionadaCand.cultura === "alface" && (
-                    <p className="source-line">
-                      Benchmark histórico disponível: alface crespa a R$ 4,53/kg na CEAGESP em jun/2026 ({fonte("conab-prohort").titulo}), rotulado historical_only. Serve de contexto, nunca de preço atual.
-                    </p>
-                  )}
                 </div>
 
                 <div className="card">

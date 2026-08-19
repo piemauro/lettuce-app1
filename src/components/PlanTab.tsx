@@ -276,8 +276,9 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
         {resultado && (
           <>
             <div className="card">
-              <p className="eyebrow">Culturas comparadas por regras visíveis</p>
-              <h2>{resultado.ok ? "Opções para esse talhão" : "Sem opção compatível"}</h2>
+              <p className="eyebrow">1 · Qual cultura plantar</p>
+              <h2>{resultado.ok ? "Opções para a sua terra" : "Sem opção compatível"}</h2>
+              <p className="card-sub">Toque numa cultura para ver o plano completo dela.</p>
               {resultado.erro && <div className="notice notice-danger">{resultado.erro}</div>}
               {resultado.pendenciasGerais.map((p) => (
                 <div key={p} className="notice notice-warn">{p}</div>
@@ -310,7 +311,7 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
 
             {clima && (
               <div className="card">
-                <p className="eyebrow">Risco climático · contexto regional</p>
+                <p className="eyebrow">2 · Clima na região</p>
                 <h2>{clima.regime === "previsao" ? "Previsão dos próximos 7 dias" : clima.regime === "climatologia" ? "Contexto histórico" : "Observações registradas"}</h2>
                 <p className="card-sub">{clima.mensagem}</p>
                 <div className={`notice ${clima.risco === "desconhecido" ? "notice-warn" : ""}`}>
@@ -323,33 +324,59 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
             {selecionadaCand && (
               <>
                 <div className="card">
-                  <p className="eyebrow">Calendário de tratos · {selecionadaCand.nome}</p>
-                  <h2>Cuidados organizados no tempo</h2>
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr><th>Tarefa</th><th>Janela</th><th>Condição</th><th>Nível</th></tr>
-                      </thead>
-                      <tbody>
-                        {calendarios[selecionadaCand.cultura]!.map((t) => (
-                          <tr key={t.nome}>
-                            <td>{t.nome}</td>
-                            <td className="num">{addDias(dataPlantio, t.offsetMinDias)}{t.offsetMaxDias > t.offsetMinDias ? ` – ${addDias(dataPlantio, t.offsetMaxDias)}` : ""}</td>
-                            <td>{t.condicao ?? "—"}</td>
-                            <td>{t.nivel === "revisao_tecnica" ? <span className="badge badge-cond">revisão técnica</span> : "geral"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="source-line">Offsets relativos ao plantio de {new Date(`${dataPlantio}T12:00:00`).toLocaleDateString("pt-BR")}. Fonte: {fonte("embrapa-c47").titulo} (referência ampla para o Sudeste). Mudar a data recalcula tudo sem chamar modelo de linguagem.</p>
-                </div>
+                  <p className="eyebrow">3 · Dinheiro: quanto sai e quanto pode voltar</p>
+                  <h2>Investimento e cenário de venda · {selecionadaCand.nome}</h2>
+                  <p className="card-sub">Estimativas para {areaM2.toLocaleString("pt-BR")} m², com valores que você pode conferir e editar. Nada aqui é promessa de resultado.</p>
 
-                <div className="card">
-                  <p className="eyebrow">Investimento estimado · custos editáveis</p>
-                  <h2>Quantidades e valores que você pode conferir</h2>
-                  <p className="card-sub">Estimativas de referência para {areaM2.toLocaleString("pt-BR")} m². Edite qualquer valor: o total recalcula na hora. Isso não é recomendação financeira.</p>
-                  <div className="table-wrap">
+                  <div className="money-hero">
+                    <strong>{formatBRL(custoVariavel)}</strong>
+                    <span>estimativa do que você gasta para plantar (faixa base)</span>
+                  </div>
+                  <div className="money-range">
+                    <div><small>faixa baixa</small>{formatBRL(Math.round(custoVariavel * 0.85))}</div>
+                    <div className="mid"><small>base</small>{formatBRL(custoVariavel)}</div>
+                    <div><small>faixa alta</small>{formatBRL(Math.round(custoVariavel * 1.15))}</div>
+                  </div>
+
+                  <div className="money-hero">
+                    <strong>{formatBRL(simResult.resultadoBrutoCentavos)}</strong>
+                    <span>
+                      sobra no exemplo de venda <span className="badge badge-sim">dados simulados</span>
+                    </span>
+                  </div>
+                  <p className="card-sub">
+                    Exemplo com {sim.quantidadeColhidaKg.toLocaleString("pt-BR")} kg colhidos e preço hipotético de {formatBRL(sim.precoAtacadoCentavosKg)}/kg:
+                    sobram {simResult.quantidadeVendavelKg.toLocaleString("pt-BR")} kg após a perda, {formatBRL(simResult.receitaLiquidaCentavos)} líquidos no canal.
+                  </p>
+
+                  <details className="fold">
+                    <summary>Calendário de cuidados</summary>
+                    <div className="fold-body">
+                      <div className="table-wrap">
+                        <table>
+                          <thead>
+                            <tr><th>Tarefa</th><th>Janela</th><th>Condição</th><th>Nível</th></tr>
+                          </thead>
+                          <tbody>
+                            {calendarios[selecionadaCand.cultura]!.map((t) => (
+                              <tr key={t.nome}>
+                                <td>{t.nome}</td>
+                                <td className="num">{addDias(dataPlantio, t.offsetMinDias)}{t.offsetMaxDias > t.offsetMinDias ? ` – ${addDias(dataPlantio, t.offsetMaxDias)}` : ""}</td>
+                                <td>{t.condicao ?? "—"}</td>
+                                <td>{t.nivel === "revisao_tecnica" ? <span className="badge badge-cond">revisão técnica</span> : "geral"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="source-line">Offsets relativos ao plantio de {new Date(`${dataPlantio}T12:00:00`).toLocaleDateString("pt-BR")}. Fonte: {fonte("embrapa-c47").titulo} (referência ampla para o Sudeste). Mudar a data recalcula tudo sem chamar modelo de linguagem.</p>
+                    </div>
+                  </details>
+
+                  <details className="fold">
+                    <summary>Ver e editar os custos</summary>
+                    <div className="fold-body">
+                      <div className="table-wrap">
                     <table>
                       <thead>
                         <tr><th>Item</th><th>Unidade</th><th>Qtd/ha</th><th>Custo unitário (R$)</th><th>Subtotal</th></tr>
@@ -383,21 +410,19 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
                       </tbody>
                     </table>
                   </div>
-                  <div className="notice">
-                    Faixa baixa {formatBRL(Math.round(custoVariavel * 0.85))} · base {formatBRL(custoVariavel)} · alta {formatBRL(Math.round(custoVariavel * 1.15))}. A variação de ±15% é premissa editável da demo, não medição.
-                  </div>
                   <div className="notice notice-warn">
                     Sem análise de solo, adubação e corretivo aparecem como categoria de custo. O sistema não calcula dose; isso fica com o responsável técnico.
                   </div>
-                </div>
+                    </div>
+                  </details>
 
-                <div className="card">
-                  <p className="eyebrow">Prova da matemática <span className="badge badge-sim">dados simulados</span></p>
-                  <h2>Cenário econômico reproduzível</h2>
-                  <p className="card-sub">
-                    Valores-semente do módulo {cenarioSimulado.version}. Edite qualquer campo e confira o recálculo determinístico. Nenhum número aqui é promessa de resultado.
-                  </p>
-                  <div className="table-wrap">
+                  <details className="fold">
+                    <summary>Ver a conta completa do exemplo</summary>
+                    <div className="fold-body">
+                      <p className="card-sub">
+                        Valores-semente do módulo {cenarioSimulado.version}. Edite qualquer campo e confira o recálculo determinístico. Nenhum número aqui é promessa de resultado.
+                      </p>
+                      <div className="table-wrap">
                     <table>
                       <tbody>
                         <tr><td>Quantidade colhida (kg)</td><td><input type="number" value={sim.quantidadeColhidaKg} onChange={(e) => setSim({ ...sim, quantidadeColhidaKg: Number(e.target.value) })} aria-label="Quantidade colhida em kg" /></td></tr>
@@ -422,12 +447,13 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
                       </tbody>
                     </table>
                   </div>
-                </div>
+                    </div>
+                  </details>
 
-                <div className="card">
-                  <p className="eyebrow">Comparar uma oferta</p>
-                  <h2>Bruto e líquido lado a lado</h2>
-                  <p className="card-sub">Informe a oferta recebida e os custos do canal. A referência atacadista fica separada do valor na sua mão.</p>
+                  <details className="fold">
+                    <summary>Comparar uma oferta recebida</summary>
+                    <div className="fold-body">
+                      <p className="card-sub">Informe a oferta recebida e os custos do canal. A referência atacadista fica separada do valor na sua mão.</p>
                   <div className="row-2">
                     <div className="field">
                       <label>Preço ofertado (R$/kg)</label>
@@ -456,12 +482,13 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
                     Bruto {formatBRL(ofertaResult.receitaBrutaCentavos)} · deduções {formatBRL(ofertaResult.deducoesCentavos)} · líquido{" "}
                     <strong>{formatBRL(ofertaResult.receitaLiquidaCentavos)}</strong> ({formatBRL(ofertaResult.precoLiquidoPorKgColhidoCentavos)}/kg).
                   </div>
-                </div>
+                    </div>
+                  </details>
 
-                <div className="card">
-                  <p className="eyebrow">Cenários de receita · premissas visíveis</p>
-                  <h2>Faixas, com as premissas ao lado</h2>
-                  <div className="table-wrap">
+                  <details className="fold">
+                    <summary>Cenários de receita (faixas)</summary>
+                    <div className="fold-body">
+                      <div className="table-wrap">
                     <table>
                       <thead>
                         <tr><th>Cenário</th><th>Produtividade (kg/ha)</th><th>Receita estimada</th><th>Resultado ante investimento base</th></tr>
@@ -486,6 +513,8 @@ export function PlanTab({ onSummaryChange }: { onSummaryChange: (s: Record<strin
                     Premissas: produtividade em faixa de referência ampla (confirmar com técnico), preço hipotético de {formatBRL(sim.precoAtacadoCentavosKg)}/kg
                     rotulado como dado simulado, perda de 10% e comissão de {sim.comissaoPct}%. O intervalo não é promessa de retorno.
                   </p>
+                    </div>
+                  </details>
                 </div>
               </>
             )}

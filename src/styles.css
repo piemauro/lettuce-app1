@@ -1567,3 +1567,74 @@ td input {
     grid-template-columns: 1fr;
   }
 }
+
+/* dobras "ver mais" — detalhes técnicos sem soterrar o leigo */
+.fold {
+  margin-top: 12px;
+  border: 1.5px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  overflow: hidden;
+}
+.fold > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+.fold > summary::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--green-2);
+  border-bottom: 2px solid var(--green-2);
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+  flex: none;
+}
+.fold[open] > summary::after {
+  transform: rotate(-135deg);
+}
+.fold-body {
+  padding: 0 14px 14px;
+}
+
+/* controles dentro das dobras e tabelas */
+.fold-body input,
+.fold-body select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  width: 100%;
+  max-width: 160px;
+}
+.fold-body .row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.fold-body .field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 4px;
+  color: var(--muted);
+}
+.fold-body .field input {
+  max-width: none;
+}
